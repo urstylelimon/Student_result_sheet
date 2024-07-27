@@ -82,3 +82,51 @@ def student_result(request, student_id):
     else:
         # Handle the case where no student is found
         return HttpResponse("Student not found", status=404)
+
+
+#--------------PDF Download -----------------
+
+import os
+import win32com.client
+from django.conf import settings
+from django.http import HttpResponse
+from PyPDF2 import PdfMerger
+from docx2pdf import convert
+from win32com.client import Dispatch
+
+def download_all_results(request):
+    # Ensure COM is initialized
+    win32com.client.pythoncom.CoInitialize()
+
+    output_dir = os.path.join(settings.MEDIA_ROOT, 'results')
+    docx_files = [os.path.join(output_dir, f) for f in os.listdir(output_dir) if f.endswith('.docx')]
+
+    if not docx_files:
+        return HttpResponse("No result DOCX files found.", status=404)
+
+    pdf_files = []
+
+    # Convert DOCX to PDF
+    for docx_file in docx_files:
+        pdf_file = docx_file.replace('.docx', '.pdf')
+        try:
+            convert(docx_file, pdf_file)
+            pdf_files.append(pdf_file)
+        except Exception as e:
+            return HttpResponse(f"Error converting {docx_file} to PDF: {e}", status=500)
+
+    combined_pdf_path = os.path.join(output_dir, 'combined_results.pdf')
+
+    # Merge all PDFs
+    merger = PdfMerger()
+    for pdf in pdf_files:
+        merger.append(pdf)
+
+    merger.write(combined_pdf_path)
+    merger.close()
+
+    # Serve the combined PDF
+    with open(combined_pdf_path, 'rb') as pdf_file:
+        response = HttpResponse(pdf_file.read(), content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="all_student_results.pdf"'
+        return response

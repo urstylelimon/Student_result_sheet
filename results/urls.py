@@ -9,4 +9,5 @@ urlpatterns = [
     path('upload/', views.upload_files, name='upload_files'),
     path('', views.student_list, name='student_list'),
     path('student/<str:student_id>/', views.student_result, name='student_result'),
+    path('download_all_results/', views.download_all_results, name='download_all_results'),
 ]
