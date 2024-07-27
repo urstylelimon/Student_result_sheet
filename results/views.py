@@ -1,10 +1,13 @@
 import openpyxl
 import os
+
+from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.core.files.storage import FileSystemStorage
 from .models import Student
 from .forms import UploadFileForm
 from docx import Document
+
 
 def upload_files(request):
     if request.method == 'POST':
@@ -69,7 +72,13 @@ def student_list(request):
     students = Student.objects.all()
     return render(request, 'results/student_list.html', {'students': students})
 
+
 def student_result(request, student_id):
-    student = Student.objects.get(student_id=student_id)
-    result_path = os.path.join('media', 'results', f'{student.student_id}_result.docx')
-    return render(request, 'results/student_result.html', {'student': student, 'result_path': result_path})
+    students = Student.objects.filter(student_id=student_id)
+    if students.exists():
+        student = students.first()  # Get the first result
+        result_path = os.path.join('media', 'results', f'{student.student_id}_result.docx')
+        return render(request, 'results/student_result.html', {'student': student, 'result_path': result_path})
+    else:
+        # Handle the case where no student is found
+        return HttpResponse("Student not found", status=404)
